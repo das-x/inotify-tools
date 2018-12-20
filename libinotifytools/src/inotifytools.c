@@ -732,7 +732,7 @@ char * inotifytools_event_to_str_sep(int events, char sep)
 	}
 	if ( IN_ONESHOT & events ) {
 		strcat( ret, chrtostr(sep) );
-		strcat( ret, "ONESHOT" );
+
 	}
 
 	// Maybe we didn't match any... ?
@@ -1823,11 +1823,24 @@ int inotifytools_sprintf( char * out, struct inotify_event* event, char* fmt ) {
 int inotifytools_snprintf( char * out, int size,
                            struct inotify_event* event, char* fmt ) {
 	static char * filename, * eventname, * eventstr;
-	static unsigned int i, ind;
+	static unsigned int i, j, ind;
 	static char ch1;
 	static char timestr[MAX_STRLEN];
-	static time_t now;
 
+#ifndef HAVE_CLOCK_GETTIME
+	static time_t now;
+#else
+	struct timespec * ts;
+
+    /* Strings and pointers for '%N' timefmt substitution. */
+	const char * tmfmt_nano = "%N", * tmfmt_out = "%09ld";
+	char * result, * tmp, * tmp_timestr, * ins_timestr, * fmt_buff;
+	int len_front,  // The distance between the next and previous tmfmt_nano
+                    // specifiers.
+        count,      // The number of tmfmt_nano specifiers. 
+        len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
+                   strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
+#endif
 
 	if ( event->len > 0 ) {
 		eventname = event->name;
@@ -1900,22 +1913,83 @@ int inotifytools_snprintf( char * out, int size,
 
 			if ( timefmt ) {
 
+#ifndef HAVE_CLOCK_GETTIME
 				now = time(0);
 				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
-				                    localtime( &now ) ) ) {
+					localtime( &now ) ) ) {
+#else
+				ts = malloc(sizeof(struct timespec));
+				clock_gettime(CLOCK_REALTIME, ts);
+				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
+					localtime( &ts->tv_sec ) ) ) {
 
-					// time format probably invalid
+#endif /* End HAVE_CLOCK_GETTIME */
+					/* time format probably invalid */
 					error = EINVAL;
 					return ind;
 				}
+
+#ifdef HAVE_CLOCK_GETTIME
+				/* Include the nanoseconds if timefmt has a '%N' specifier. */
+				if (strstr(timestr, tmfmt_nano) != NULL) {
+					tmp_timestr = malloc(strlen(timestr) + 1);
+					strncpy(tmp_timestr, timestr, strlen(timestr) + 1);
+
+					ins_timestr = tmp_timestr;
+					for (count = 0; tmp = strstr(ins_timestr, 
+								tmfmt_nano); ++count) {
+						ins_timestr = tmp + strlen(tmfmt_nano);
+					}
+
+					tmp = result = malloc(strlen(tmp_timestr) + 
+							((strlen(tmfmt_out) - strlen(tmfmt_nano)) * count) 
+							+ 1);
+
+					if (!result) {
+						error = EINVAL;
+						return ind;
+					}
+
+					for (j = 0; j < count; j++) {
+						ins_timestr = strstr(tmp_timestr, tmfmt_nano);
+						len_front = ins_timestr - tmp_timestr;
+						tmp = strncpy(tmp, tmp_timestr, len_front) + len_front;
+						tmp = strncpy(tmp, tmfmt_out, strlen(tmfmt_out) + 1) +
+							strlen(tmfmt_out);
+						if (j == 0) {
+                            /*snprintf(timestr, tmp - result + 5, result, ts->tv_nsec);*/
+							snprintf(timestr, tmp - result + len_diff, result,
+                                    ts->tv_nsec);
+						} else {
+							strncat(timestr, result, strlen(timestr) +
+                                    tmp-result);
+							fmt_buff = malloc(strlen(timestr) + 1);
+							fmt_buff = strncpy(fmt_buff, timestr,
+                                    strlen(timestr));
+							snprintf(timestr, strlen(timestr) + len_diff,
+                                    fmt_buff, ts->tv_nsec);
+
+                            free(fmt_buff);
+						}
+
+						tmp_timestr += len_front + strlen(tmfmt_nano); /* move to end of tmfmt_nano */
+						result = tmp;
+					}
+
+					strncat(timestr, tmp_timestr, strlen(timestr) + 
+							strlen(tmp_timestr) + 1);
+				}
+                free(ts);
+#endif /* End HAVE_CLOCK_GETTIME */
 			}
 			else {
 				timestr[0] = 0;
 			}
 
-			strncpy( &out[ind], timestr, size - ind );
+			strncpy( &out[ind], timestr, size - ind);
 			ind += strlen(timestr);
 			++i;
+
 			continue;
 		}
 

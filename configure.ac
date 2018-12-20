@@ -62,7 +62,7 @@ AC_C_CONST
 AC_C_INLINE
 
 # Checks for library functions.
-AC_CHECK_FUNCS([daemon])
+AC_CHECK_FUNCS([daemon, clock_gettime])
 
 # Set variables used in man page templates
 MAN_DATE=$(date +'%B %d, %Y')
