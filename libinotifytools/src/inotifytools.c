@@ -1826,20 +1826,18 @@ int inotifytools_snprintf( char * out, int size,
 	static unsigned int i, j, ind;
 	static char ch1;
 	static char timestr[MAX_STRLEN];
-
-#ifndef HAVE_CLOCK_GETTIME
 	static time_t now;
-#else
+#if defined HAVE_CLOCK_GETTIME or defined HAVE_NANOTIME
 	struct timespec * ts;
 
-    /* Strings and pointers for '%N' timefmt substitution. */
+	/* Strings and pointers for '%N' timefmt substitution. */
 	const char * tmfmt_nano = "%N", * tmfmt_out = "%09ld";
 	char * result, * tmp, * tmp_timestr, * ins_timestr, * fmt_buff;
 	int len_front,  // The distance between the next and previous tmfmt_nano
-                    // specifiers.
-        count,      // The number of tmfmt_nano specifiers. 
-        len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
-                   strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
+			// specifiers.
+	count,      // The number of tmfmt_nano specifiers. 
+	len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
+		strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
 #endif
 
 	if ( event->len > 0 ) {
@@ -1913,23 +1911,27 @@ int inotifytools_snprintf( char * out, int size,
 
 			if ( timefmt ) {
 
-#ifndef HAVE_CLOCK_GETTIME
+#if ! defined HAVE_CLOCK_GETTIME && ! defined HAVE_NANOTIME
 				now = time(0);
-				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
-					localtime( &now ) ) ) {
 #else
 				ts = malloc(sizeof(struct timespec));
-				clock_gettime(CLOCK_REALTIME, ts);
+#if defined HAVE_NANOTIME
+				nanotime(ts);
+#elif defined HAVE_CLOCK_GET_TIME
+				if (clock_gettime(CLOCK_REALTIME, ts) == 0)
+					return;
+#endif /* End HAVE_NANOTIME or HAVE_CLOCK_GETTIME */
+				now = ts->tv_sec;
+#endif /* End ! HAVE_CLOCK_GETTIME and ! HAVE_NANOTIME */
 				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
-					localtime( &ts->tv_sec ) ) ) {
+					localtime( &now ) ) ) {
 
-#endif /* End HAVE_CLOCK_GETTIME */
 					/* time format probably invalid */
 					error = EINVAL;
 					return ind;
 				}
 
-#ifdef HAVE_CLOCK_GETTIME
+#if defined HAVE_CLOCK_GETTIME or defined HAVE_NANOTIME
 				/* Include the nanoseconds if timefmt has a '%N' specifier. */
 				if (strstr(timestr, tmfmt_nano) != NULL) {
 					tmp_timestr = malloc(strlen(timestr) + 1);
@@ -1980,7 +1982,7 @@ int inotifytools_snprintf( char * out, int size,
 							strlen(tmp_timestr) + 1);
 				}
                 free(ts);
-#endif /* End HAVE_CLOCK_GETTIME */
+#endif /* End HAVE_CLOCK_GETTIME or HAVE_NANOTIME */
 			}
 			else {
 				timestr[0] = 0;
