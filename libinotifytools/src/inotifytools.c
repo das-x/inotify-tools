@@ -1,4 +1,5 @@
 // kate: replace-tabs off; space-indent off;
+// vim: ts=4: noet
 
 /**
  * @mainpage libinotifytools
@@ -1827,17 +1828,17 @@ int inotifytools_snprintf( char * out, int size,
 	static char ch1;
 	static char timestr[MAX_STRLEN];
 	static time_t now;
-#if defined HAVE_CLOCK_GETTIME or defined HAVE_NANOTIME
-	struct timespec * ts;
+#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
+	static struct timespec * ts;
 
 	/* Strings and pointers for '%N' timefmt substitution. */
-	const char * tmfmt_nano = "%N", * tmfmt_out = "%09ld";
-	char * result, * tmp, * tmp_timestr, * ins_timestr, * fmt_buff;
-	int len_front,  // The distance between the next and previous tmfmt_nano
-			// specifiers.
-	count,      // The number of tmfmt_nano specifiers. 
-	len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
-		strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
+	static const char * tmfmt_nano = "%N", * tmfmt_out = "%09ld";
+	static char * result, * tmp, * tmp_timestr, * ins_timestr, * fmt_buff;
+	static int len_front,	// The distance between the next and previous
+							// tmfmt_nanospecifiers.
+	count;				// The number of tmfmt_nano specifiers. 
+	const int len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
+						strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
 #endif
 
 	if ( event->len > 0 ) {
@@ -1911,18 +1912,18 @@ int inotifytools_snprintf( char * out, int size,
 
 			if ( timefmt ) {
 
-#if ! defined HAVE_CLOCK_GETTIME && ! defined HAVE_NANOTIME
-				now = time(0);
-#else
+#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
 				ts = malloc(sizeof(struct timespec));
 #if defined HAVE_NANOTIME
 				nanotime(ts);
-#elif defined HAVE_CLOCK_GET_TIME
+#elif ( defined HAVE_CLOCK_GET_TIME && defined HAVE_CLOCK_REALTIME )
 				if (clock_gettime(CLOCK_REALTIME, ts) == 0)
 					return;
 #endif /* End HAVE_NANOTIME or HAVE_CLOCK_GETTIME */
 				now = ts->tv_sec;
-#endif /* End ! HAVE_CLOCK_GETTIME and ! HAVE_NANOTIME */
+#else
+				now = time(0);
+#endif /* End HAVE_CLOCK_GETTIME and HAVE_NANOTIME */
 				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
 					localtime( &now ) ) ) {
 
@@ -1931,7 +1932,7 @@ int inotifytools_snprintf( char * out, int size,
 					return ind;
 				}
 
-#if defined HAVE_CLOCK_GETTIME or defined HAVE_NANOTIME
+#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
 				/* Include the nanoseconds if timefmt has a '%N' specifier. */
 				if (strstr(timestr, tmfmt_nano) != NULL) {
 					tmp_timestr = malloc(strlen(timestr) + 1);
@@ -1959,19 +1960,18 @@ int inotifytools_snprintf( char * out, int size,
 						tmp = strncpy(tmp, tmfmt_out, strlen(tmfmt_out) + 1) +
 							strlen(tmfmt_out);
 						if (j == 0) {
-                            /*snprintf(timestr, tmp - result + 5, result, ts->tv_nsec);*/
 							snprintf(timestr, tmp - result + len_diff, result,
                                     ts->tv_nsec);
 						} else {
 							strncat(timestr, result, strlen(timestr) +
-                                    tmp-result);
+								tmp-result);
 							fmt_buff = malloc(strlen(timestr) + 1);
 							fmt_buff = strncpy(fmt_buff, timestr,
-                                    strlen(timestr));
+										strlen(timestr));
 							snprintf(timestr, strlen(timestr) + len_diff,
-                                    fmt_buff, ts->tv_nsec);
+									fmt_buff, ts->tv_nsec);
 
-                            free(fmt_buff);
+							free(fmt_buff);
 						}
 
 						tmp_timestr += len_front + strlen(tmfmt_nano); /* move to end of tmfmt_nano */
@@ -1981,9 +1981,9 @@ int inotifytools_snprintf( char * out, int size,
 					strncat(timestr, tmp_timestr, strlen(timestr) + 
 							strlen(tmp_timestr) + 1);
 				}
-                free(ts);
-#endif /* End HAVE_CLOCK_GETTIME or HAVE_NANOTIME */
-			}
+				free(ts);
+#endif /* End ( HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME ) || HAVE_NANOTIME */
+            }
 			else {
 				timestr[0] = 0;
 			}
