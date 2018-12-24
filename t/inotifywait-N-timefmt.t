@@ -6,6 +6,15 @@
 #   aAbBcCdDeEFghIjklmMnpPrStuUVwxXyYzZ+%
 #set -x
 
+SLEEP=${SLEEP:-`which sleep 2>/dev/null`}
+[ $? -gt 0 -o -z "$SLEEP" ] && echo "ERROR>>> Unable to find the sleep program \
+    ... exiting." && exit 1
+
+SLEEP_TM=${SLEEP_TM:-.1}
+if ! `sleep $SLEEP_TM`; then
+    SLEEP_TM=1
+fi
+
 DIG_2=[[:digit:]]{2}
 
 DIG_HRS=$DIG_2
@@ -61,7 +70,7 @@ runInotifywait () {
 
     RTN_CHK=`../src/inotifywait -t 2 -q --format "%T" --timefmt "$TST_TMFMT" test_dir`
 
-    echo $RTN_CHK | grep -qE "^${EXP_OUTPUT}$" && echo "$RTN_CHK is good" || echo "$RTN_CHK failed '$EXP_OUTPUT'"
+    echo $RTN_CHK | grep -qE "^${EXP_OUTPUT}$" && echo "'$RTN_CHK' is good" || echo "'$RTN_CHK' failed '$EXP_OUTPUT'"
 }
 
 for TSTFMT in $TSTFMTS; do
@@ -70,13 +79,13 @@ for TSTFMT in $TSTFMTS; do
 
     touch test_dir/a.txt
 
-    sleep 1
+    $SLEEP $SLEEP_TM
 
     rm test_dir/a.txt
 
 done
 
-sleep 1
+$SLEEP $SLEEP_TM
 
 rmdir test_dir
 set -
