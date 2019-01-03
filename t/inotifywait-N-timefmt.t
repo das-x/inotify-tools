@@ -4,7 +4,6 @@
 # seconds, and/or the various timezone outputs but the full set of possible
 # strftime values which it could be tested against is as follows:
 #   aAbBcCdDeEFghIjklmMnpPrStuUVwxXyYzZ+%
-#set -x
 
 SLEEP=${SLEEP:-`which sleep 2>/dev/null`}
 [ $? -gt 0 -o -z "$SLEEP" ] && echo "ERROR>>> Unable to find the sleep program \
@@ -14,6 +13,10 @@ SLEEP_TM=${SLEEP_TM:-.1}
 if ! `sleep $SLEEP_TM`; then
     SLEEP_TM=1
 fi
+
+TST_DIR=${TST_DIR:-test_dir}
+
+TST_FILE=${TST_FILE:-a.txt}
 
 DIG_2=[[:digit:]]{2}
 
@@ -59,8 +62,8 @@ TSTFMTS="%N|$DIG_NNO \
         %N_other_%H:%M:%S.%N_end|${DIG_NNO}_other_${DIG_HMSN}_end
         %N_other_%H:%M:%S.%N_end_%N|${DIG_NNO}_other_${DIG_HMSN}_end_${DIG_NNO}"
 
-[ -d test_dir ] && rm -rf test_dir
-mkdir test_dir
+[ -d $TST_DIR ] && rm -rf $TST_DIR
+mkdir $TST_DIR
 
 runInotifywait () {
     TST_TMFMT=`echo $1 | tr _ ' '`
@@ -68,7 +71,7 @@ runInotifywait () {
 
     echo -n "Testing time format "$TST_TMFMT" ... "
 
-    RTN_CHK=`../src/inotifywait -t 2 -q --format "%T" --timefmt "$TST_TMFMT" test_dir`
+    RTN_CHK=`../src/inotifywait -t 2 -q --format "%T" --timefmt "$TST_TMFMT" $TST_DIR`
 
     echo $RTN_CHK | grep -qE "^${EXP_OUTPUT}$" && echo "'$RTN_CHK' is good" || echo "'$RTN_CHK' failed '$EXP_OUTPUT'"
 }
@@ -77,15 +80,14 @@ for TSTFMT in $TSTFMTS; do
 
     runInotifywait `echo $TSTFMT | tr '|' ' '` &
 
-    touch test_dir/a.txt
+    touch $TST_DIR/$TST_FILE
 
     $SLEEP $SLEEP_TM
 
-    rm test_dir/a.txt
+    rm $TST_DIR/$TST_FILE
 
 done
 
 $SLEEP $SLEEP_TM
 
-rmdir test_dir
-set -
+rmdir $TST_DIR
