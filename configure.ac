@@ -46,7 +46,7 @@ AM_CONDITIONAL([STATIC_BINARY_ENABLE], test "$STATIC_BINARY_ENABLE" = "yes")
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([sys/inotify.h mcheck.h time.h])
+AC_CHECK_HEADERS([sys/inotify.h mcheck.h time.h sys/time.h])
 AC_LANG(C)
 AC_MSG_CHECKING([whether sys/inotify.h actually works])
 AC_COMPILE_IFELSE(
@@ -62,36 +62,29 @@ AC_C_CONST
 AC_C_INLINE
 
 # Checks for library functions.
-AC_CHECK_FUNC([daemon, nanotime])
-#    See if we have the 'clock_gettime' function. 
-AC_CHECK_FUNCS([clock_gettime nanotime],[has_clock_gettime=yes])
+AC_CHECK_FUNCS([daemon lstat64])
+# Check for the 'clock_gettime' function. 
+AC_CHECK_FUNC([clock_gettime],[has_clock_gettime=yes])
 
-# Check if we have the 'clock_gettime' function, see if we have a CLOCK_REALTIME
-# clock_id.
-AC_DEFUN([chk_CLOCKREALTIME],
-[
-  dnl if test x"$ac_cv_func_clock_gettime" = x"yes"; then
-  if test x"$has_clock_gettime" = x"yes"; then
-    AC_CACHE_CHECK([whether CLOCK_REALTIME is defined],
-      [chk_cv_have_clock_gettime_macro],
-      [AC_EGREP_CPP([have_clock_gettime_macro],
-        [
-#            include <time.h>
-#            if defined CLOCK_REALTIME
-          have_clock_gettime_macro
-#            endif
-        ],
-        [chk_cv_have_clock_gettime_macro=yes],
-        [])])
-  fi
-  if test x"$chk_cv_have_clock_gettime_macro" = x"yes"; then
-    AC_DEFINE([HAVE_CLOCK_REALTIME],[1],[Define to 1 if you have the 'CLOCK_REALTIME' definition.])
-  else
-    AC_MSG_FAILURE([cannot find CLOCK_REALTIME], [1])
-  fi
-])
-
-chk_CLOCKREALTIME
+# If have the 'clock_gettime' function, see if CLOCK_REALTIME clock_id exists.
+if test x"$has_clock_gettime" = x"yes"; then
+  AC_CACHE_CHECK([whether CLOCK_REALTIME is defined],
+    [chk_cv_have_clock_gettime_macro],
+    [AC_EGREP_CPP([have_clock_gettime_macro],
+      [
+#          include <time.h>
+#          if defined CLOCK_REALTIME
+        have_clock_gettime_macro
+#          endif
+      ],
+      [chk_cv_have_clock_gettime_macro=yes],
+      [])])
+fi
+if test x"$chk_cv_have_clock_gettime_macro" = x"yes"; then
+  AC_DEFINE([HAVE_CLOCK_REALTIME],[1],[Define to 1 if you have the 'CLOCK_REALTIME' definition.])
+else
+  AC_MSG_FAILURE([cannot find CLOCK_REALTIME], [1])
+fi
 
 # Set variables used in man page templates
 MAN_DATE=$(date +'%B %d, %Y')
