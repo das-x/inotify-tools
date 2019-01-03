@@ -1912,16 +1912,10 @@ int inotifytools_snprintf( char * out, int size,
 
 			if ( timefmt ) {
 
-					/*#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME*/
 #if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				ts = malloc(sizeof(struct timespec));
-				/*#if defined HAVE_NANOTIME*/
-				/*nanotime(ts);*/
-				/*#elif ( defined HAVE_CLOCK_GET_TIME && defined HAVE_CLOCK_REALTIME )*/
-				/*#ifdef HAVE_CLOCK_GET_TIME && HAVE_CLOCK_REALTIME*/
 				if (clock_gettime(CLOCK_REALTIME, ts) == 0)
 					return;
-				/*#endif *//* End HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME */
 				now = ts->tv_sec;
 #else
 				now = time(0);
@@ -1934,7 +1928,6 @@ int inotifytools_snprintf( char * out, int size,
 					return ind;
 				}
 
-				/*#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME*/
 #if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				/* Include the nanoseconds if timefmt has a '%N' specifier. */
 				if (strstr(timestr, tmfmt_nano) != NULL) {
@@ -1985,7 +1978,6 @@ int inotifytools_snprintf( char * out, int size,
 							strlen(tmp_timestr) + 1);
 				}
 				free(ts);
-				/*#endif *//* End ( HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME ) || HAVE_NANOTIME */
 #endif /* End defined HAVE_CLOCK_GETTIME and defined HAVE_CLOCK_REALTIME */
             }
 			else {
