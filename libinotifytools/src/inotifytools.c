@@ -1828,7 +1828,7 @@ int inotifytools_snprintf( char * out, int size,
 	static char ch1;
 	static char timestr[MAX_STRLEN];
 	static time_t now;
-#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
+#if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 	static struct timespec * ts;
 
 	/* Strings and pointers for '%N' timefmt substitution. */
@@ -1839,7 +1839,7 @@ int inotifytools_snprintf( char * out, int size,
 	count;				// The number of tmfmt_nano specifiers. 
 	const int len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
 						strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
-#endif
+#endif /* End defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME */
 
 	if ( event->len > 0 ) {
 		eventname = event->name;
@@ -1912,18 +1912,20 @@ int inotifytools_snprintf( char * out, int size,
 
 			if ( timefmt ) {
 
-#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
+					/*#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME*/
+#if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				ts = malloc(sizeof(struct timespec));
-#if defined HAVE_NANOTIME
-				nanotime(ts);
-#elif ( defined HAVE_CLOCK_GET_TIME && defined HAVE_CLOCK_REALTIME )
+				/*#if defined HAVE_NANOTIME*/
+				/*nanotime(ts);*/
+				/*#elif ( defined HAVE_CLOCK_GET_TIME && defined HAVE_CLOCK_REALTIME )*/
+				/*#ifdef HAVE_CLOCK_GET_TIME && HAVE_CLOCK_REALTIME*/
 				if (clock_gettime(CLOCK_REALTIME, ts) == 0)
 					return;
-#endif /* End HAVE_NANOTIME or HAVE_CLOCK_GETTIME */
+				/*#endif *//* End HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME */
 				now = ts->tv_sec;
 #else
 				now = time(0);
-#endif /* End HAVE_CLOCK_GETTIME and HAVE_NANOTIME */
+#endif /* End defined HAVE_CLOCK_GETTIME and defined HAVE_CLOCK_REALTIME */
 				if ( 0 >= strftime( timestr, MAX_STRLEN-1, timefmt,
 					localtime( &now ) ) ) {
 
@@ -1932,15 +1934,16 @@ int inotifytools_snprintf( char * out, int size,
 					return ind;
 				}
 
-#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME
+				/*#if ( defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME ) || defined HAVE_NANOTIME*/
+#if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				/* Include the nanoseconds if timefmt has a '%N' specifier. */
 				if (strstr(timestr, tmfmt_nano) != NULL) {
 					tmp_timestr = malloc(strlen(timestr) + 1);
 					strncpy(tmp_timestr, timestr, strlen(timestr) + 1);
 
 					ins_timestr = tmp_timestr;
-					for (count = 0; tmp = strstr(ins_timestr, 
-								tmfmt_nano); ++count) {
+					for (count = 0; (tmp = strstr(ins_timestr, 
+								tmfmt_nano)) != NULL; ++count) {
 						ins_timestr = tmp + strlen(tmfmt_nano);
 					}
 
@@ -1982,7 +1985,8 @@ int inotifytools_snprintf( char * out, int size,
 							strlen(tmp_timestr) + 1);
 				}
 				free(ts);
-#endif /* End ( HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME ) || HAVE_NANOTIME */
+				/*#endif *//* End ( HAVE_CLOCK_GETTIME and HAVE_CLOCK_REALTIME ) || HAVE_NANOTIME */
+#endif /* End defined HAVE_CLOCK_GETTIME and defined HAVE_CLOCK_REALTIME */
             }
 			else {
 				timestr[0] = 0;
