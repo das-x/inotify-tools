@@ -1833,12 +1833,14 @@ int inotifytools_snprintf( char * out, int size,
 
 	/* Strings and pointers for '%N' timefmt substitution. */
 	static const char * tmfmt_nano = "%N", * tmfmt_out = "%09ld";
-	static char * result, * tmp, * tmp_timestr, * ins_timestr, * fmt_buff;
+	/* Various pointers for replacing '%N' with tmfmt_out. */
+	static char * tmp_frnt, * tmp_timestr, * frnt, * result, * tmp, 
+				* ins_timestr, * fmt_buff;
 	static int len_front,	// The distance between the next and previous
 							// tmfmt_nanospecifiers.
-	count;				// The number of tmfmt_nano specifiers. 
-	const int len_diff  = atoi(tmfmt_out + 2) -   // The length difference between 
-						strlen(tmfmt_out + 1);   // tmfmt_out and what it outputs.
+	count;					// The number of tmfmt_nano specifiers. 
+	const int len_diff  = atoi(tmfmt_out + 2) - // The length difference between
+						strlen(tmfmt_out + 1);  // tmfmt_out and what it outputs
 #endif /* End defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME */
 
 	if ( event->len > 0 ) {
@@ -1911,11 +1913,10 @@ int inotifytools_snprintf( char * out, int size,
 		if ( ch1 == 'T' ) {
 
 			if ( timefmt ) {
-
 #if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				ts = malloc(sizeof(struct timespec));
-				if (clock_gettime(CLOCK_REALTIME, ts) == 0)
-					return;
+				if (clock_gettime(CLOCK_REALTIME, ts) == -1)
+					return -1;
 				now = ts->tv_sec;
 #else
 				now = time(0);
@@ -1931,7 +1932,7 @@ int inotifytools_snprintf( char * out, int size,
 #if defined HAVE_CLOCK_GETTIME && defined HAVE_CLOCK_REALTIME
 				/* Include the nanoseconds if timefmt has a '%N' specifier. */
 				if (strstr(timestr, tmfmt_nano) != NULL) {
-					tmp_timestr = malloc(strlen(timestr) + 1);
+					tmp_frnt = tmp_timestr = malloc(strlen(timestr) + 1);
 					strncpy(tmp_timestr, timestr, strlen(timestr) + 1);
 
 					ins_timestr = tmp_timestr;
@@ -1940,7 +1941,7 @@ int inotifytools_snprintf( char * out, int size,
 						ins_timestr = tmp + strlen(tmfmt_nano);
 					}
 
-					tmp = result = malloc(strlen(tmp_timestr) + 
+					frnt = tmp = result = malloc(strlen(tmp_timestr) + 
 							((strlen(tmfmt_out) - strlen(tmfmt_nano)) * count) 
 							+ 1);
 
@@ -1974,8 +1975,12 @@ int inotifytools_snprintf( char * out, int size,
 						result = tmp;
 					}
 
+					free(frnt);
+
 					strncat(timestr, tmp_timestr, strlen(timestr) + 
 							strlen(tmp_timestr) + 1);
+
+					free(tmp_frnt);
 				}
 				free(ts);
 #endif /* End defined HAVE_CLOCK_GETTIME and defined HAVE_CLOCK_REALTIME */
