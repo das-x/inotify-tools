@@ -5,13 +5,19 @@
 # strftime values which it could be tested against is as follows:
 #   aAbBcCdDeEFghIjklmMnpPrStuUVwxXyYzZ+%
 
+INOTIFYWAIT=${INOTIFYWAIT:-../src/inotifywait}
+echo Using inotifywait at `realpath $INOTIFYWAIT`
+[ ! -x $INOTIFYWAIT ] && echo "ERROR>>> `basename $INOTIFYWAIT` at `dirname $INOTIFYWAIT` not found to be executable ... exiting." && exit
+
 SLEEP=${SLEEP:-`which sleep 2>/dev/null`}
 [ $? -gt 0 -o -z "$SLEEP" ] && echo "ERROR>>> Unable to find the sleep program \
     ... exiting." && exit 1
 
 SLEEP_TM=${SLEEP_TM:-.1}
-if ! `sleep $SLEEP_TM`; then
-    SLEEP_TM=1
+if [ `echo $SLEEP_TM\<1 | bc -l` ]; then
+    if ! `sleep $SLEEP_TM`; then
+        SLEEP_TM=1
+    fi
 fi
 
 TST_DIR=${TST_DIR:-test_dir}
@@ -71,7 +77,7 @@ runInotifywait () {
 
     echo -n "Testing time format "$TST_TMFMT" ... "
 
-    RTN_CHK=`../src/inotifywait -t 2 -q --format "%T" --timefmt "$TST_TMFMT" $TST_DIR`
+    RTN_CHK=`$INOTIFYWAIT --timeout 2 --quiet --format "%T" --timefmt "$TST_TMFMT" $TST_DIR`
 
     echo $RTN_CHK | grep -qE "^${EXP_OUTPUT}$" && echo "'$RTN_CHK' is good" || echo "'$RTN_CHK' failed '$EXP_OUTPUT'"
 }
