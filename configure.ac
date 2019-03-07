@@ -62,12 +62,13 @@ AC_C_CONST
 AC_C_INLINE
 
 # Checks for library functions.
-AC_CHECK_FUNCS([daemon lstat64])
+AC_CHECK_FUNCS([daemon])
 # Check for the 'clock_gettime' function. 
-AC_CHECK_FUNC([clock_gettime],[has_clock_gettime=yes])
+AC_CHECK_FUNC([clock_gettime], [has_clock_gettime=yes])
 
 # If have the 'clock_gettime' function, see if CLOCK_REALTIME clock_id exists.
 if test x"$has_clock_gettime" = x"yes"; then
+  AC_DEFINE([HAVE_CLOCK_GETTIME],[1],[Define to 1 if you have the 'clock_gettime' function.])
   AC_CACHE_CHECK([whether CLOCK_REALTIME is defined],
     [chk_cv_have_clock_gettime_macro],
     [AC_EGREP_CPP([have_clock_gettime_macro],
@@ -83,7 +84,7 @@ fi
 if test x"$chk_cv_have_clock_gettime_macro" = x"yes"; then
   AC_DEFINE([HAVE_CLOCK_REALTIME],[1],[Define to 1 if you have the 'CLOCK_REALTIME' definition.])
 else
-  AC_MSG_FAILURE([cannot find CLOCK_REALTIME], [1])
+  AC_MSG_FAILURE([cannot find CLOCK_REALTIME clock_id], [1])
 fi
 
 # Set variables used in man page templates
@@ -104,3 +105,15 @@ AC_CONFIG_FILES([
   libinotifytools/src/inotifytools/Makefile
 ])
 AC_OUTPUT
+
+echo "
+Configuration:
+
+   prefix:						${prefix}
+   CC:							${CC}
+   CFLAGS:						${CFLAGS}
+   LDFLAGS:						${LDFLAGS}
+   LIBS:						${LIBS}
+   LT_SYS_LIBRARY_PATH:			${LT_SYS_LIBRARY_PATH}
+
+"
