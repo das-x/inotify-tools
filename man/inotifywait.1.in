@@ -144,7 +144,10 @@ at each space character.
 .TP
 .B \-\-timefmt <fmt>
 Set a time format string as accepted by strftime(3) for use with the `%T' conversion
-in the \-\-format option.
+in the \-\-format option.  For those systems with a
+.B clock_gettime
+function, the '%N' time position specifier can be used to output the
+nanosecond an event occurred.
 
 .TP
 .B \-\-format <fmt>

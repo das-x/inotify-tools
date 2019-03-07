@@ -100,10 +100,7 @@ maximum is 8192; it can be increased by writing to
 .B \-t <seconds>, \-\-timeout <seconds>
 Listen only for the specified amount of seconds.  If not specified, inotifywatch
 will gather statistics until receiving an interrupt signal by (for example)
-pressing CONTROL-C at the console.  For those systems with
-.B clock_gettime
-functions, the '%N' time position specifier can be used to output the
-nanosecond of the event.
+pressing CONTROL-C at the console.
 
 .TP
 .B \-e <event>, \-\-event <event>
